@@ -1,0 +1,824 @@
+type: edu
+custom_name: stage5
+files:
+- name: src/budget/Main.java
+  visible: true
+  text: |
+    package budget;
+
+    public class Main {
+        public static void main(String[] args) {
+            // write your code here
+        }
+    }
+  learner_created: false
+- name: test/BudgetManagerTest.java
+  visible: false
+  text: |
+    import org.hyperskill.hstest.stage.StageTest;
+    import org.hyperskill.hstest.testcase.CheckResult;
+    import org.hyperskill.hstest.testcase.TestCase;
+
+    import java.io.File;
+    import java.util.List;
+    import java.util.regex.Matcher;
+    import java.util.regex.Pattern;
+
+    public class BudgetManagerTest extends StageTest<String> {
+
+
+        @Override
+        public List<TestCase<String>> generate() {
+            return List.of(
+
+                    new TestCase<String>()
+                            .setInput("0\n")
+                            .setCheckFunc(BudgetManagerTest::test1),
+
+                    new TestCase<String>()
+                            .setInput("0\n")
+                            .setCheckFunc(BudgetManagerTest::test2),
+
+                    new TestCase<String>()
+                            .setInput("4\n0")
+                            .setCheckFunc(BudgetManagerTest::test3),
+
+                    new TestCase<String>()
+                            .setInput("1\n400\n4\n1\n200\n4\n0")
+                            .setCheckFunc(BudgetManagerTest::test4),
+
+                    new TestCase<String>()
+                            .setInput("1\n1000\n2\n" +
+                                    "1\nAlmond 250g\n35.43\n" +
+                                    "1\nMilk\n3.50\n" +
+                                    "1\nRed Fuji Apple\n5.99\n" +
+                                    "1\nEggs\n3.99\n" +
+                                    "1\nFIJI Natural Artesian Water\n25.98\n" +
+                                    "1\nHershey's milk chocolate bars\n8.54\n" +
+                                    "1\nGreat Value Broccoli Florets\n1.00\n" +
+                                    "1\nKeystone Ground Bee\n6.28\n" +
+                                    "2\nGildan LT\n8.61\n" +
+                                    "2\nMen's Dual Defense Crew Socks 12 Pairs\n13.00\n" +
+                                    "2\nWrangler Men's Stretch Cargo Pant\n19.97\n" +
+                                    "3\nLEGO DUPLO Town Farm Animals\n10.10\n" +
+                                    "3\nCinema\n8.73\n" +
+                                    "3\nSkate rental\n30\n" +
+                                    "4\nSensodyne Pronamel Toothpaste\n19.74\n" +
+                                    "4\nChick-fil-A $10 Gift Card\n10\n" +
+                                    "4\nDebt\n3.50\n" +
+                                    "5\n5\n0")
+                            .setCheckFunc(BudgetManagerTest::test5),
+
+                    new TestCase<String>()
+                            .setInput("6\n4\n3\n5\n1\n6\n0")
+                            .setCheckFunc(BudgetManagerTest::test6),
+
+                    new TestCase<String>()
+                            .setInput("7\n1\n2\n3\n4\n4\n6\n7\n1\n2\n3\n1\n4\n0")
+                            .setCheckFunc(BudgetManagerTest::test7)
+            );
+        }
+
+
+        //Checking program stop
+        private static CheckResult test1(String reply, String attach) {
+            if (!reply.contains("Bye!")) {
+                return new CheckResult(false,
+                        "Your program should stop after choosing \"Exit\"");
+            }
+            return new CheckResult(true);
+        }
+
+
+        //Checking menu
+        private static CheckResult test2(String reply, String attach) {
+            String[] menuPatterns = {"1)", "2)", "3)", "4)", "0)"};
+            for (String menuPattern : menuPatterns) {
+                if (!reply.contains(menuPattern)) {
+                    return new CheckResult(false,
+                            "Your menu doesn't have item " + menuPattern);
+                }
+            }
+            return new CheckResult(true);
+        }
+
+
+        //Checking balance
+        private static CheckResult test3(String reply, String attach) {
+
+            String[] blocks = reply.split("\n(\n+)?\n");
+
+            if (blocks.length != 4) {
+                return new CheckResult(false,
+                        "Your program shows wrong blocks of output. Expected: 4\n" +
+                                "You have: " + blocks.length + "\n" +
+                                "Make sure that you print an empty line after each chosen action");
+            }
+
+            String balance = blocks[1];
+
+            if (!balance.toLowerCase().contains("balance")) {
+                return new CheckResult(false,
+                        "Your program should show balance after choosing 4th item");
+            }
+
+            Pattern doublePattern = Pattern.compile("\\d+[,.]\\d+");
+            Matcher matcher = doublePattern.matcher(balance);
+
+            if (!matcher.find()) {
+                return new CheckResult(false,
+                        "Your balance should contain a number!");
+            }
+
+            double balanceDouble = Double.parseDouble(matcher.group());
+
+            if (Math.abs(balanceDouble - 0) > 0.0001) {
+                System.out.println(balance);
+                return new CheckResult(false,
+                        "Balance should be $0.00 at the beginning");
+            }
+
+            return new CheckResult(true);
+        }
+
+
+        //Checking adding income
+        private static CheckResult test4(String reply, String attach) {
+
+            String[] blocks = reply.split("\n(\n+)?\n");
+
+            if (blocks.length != 10) {
+                return new CheckResult(false,
+                        "Your program shows wrong blocks of output. Expected: 10\n" +
+                                "You have: " + blocks.length + "\n" +
+                                "Make sure that you print an empty line after each chosen action");
+            }
+
+            String balanceAfterFirstAddingIncome = blocks[3];
+
+            if (!balanceAfterFirstAddingIncome.contains("$400")) {
+                return new CheckResult(false,
+                        "Balance is wrong after adding income!.\n" +
+                                "Expected:\n" +
+                                "Balance: $400.00\n" +
+                                "Your output:\n" +
+                                balanceAfterFirstAddingIncome);
+            }
+
+            return new CheckResult(true);
+        }
+
+        //Checking the saving purchases
+        private static CheckResult test5(String reply, String attach) {
+            File file = new File("purchases.txt");
+            if (!file.exists()) {
+                return new CheckResult(false,
+                        "Your program should create purchase.txt file and save purchases there!");
+            }
+            return new CheckResult(true);
+        }
+
+        //Checking the downloading purchases
+        private static CheckResult test6(String reply, String attach) {
+
+            String[] blocks = reply.split("\n(\n+)?\n");
+
+            if (blocks.length != 12) {
+                return new CheckResult(false,
+                        "Your program shows wrong blocks of output. Expected: 12\n" +
+                                "You have: " + blocks.length + "\n" +
+                                "Make sure that you print an empty line after each chosen action");
+            }
+
+            String balanceAfterDownloadingPurchases = blocks[3];
+
+            if (!balanceAfterDownloadingPurchases.replace(",", ".").contains("785.64")) {
+                return new CheckResult(false,
+                        "Your program reads balance from file wrong!");
+            }
+
+            //All purchases list
+
+            String allPurchases = blocks[6];
+
+            String[] expectedPurchases = {
+                    "Almond 250g $35.43",
+                    "Milk $3.50",
+                    "Red Fuji Apple $5.99",
+                    "Eggs $3.99",
+                    "FIJI Natural Artesian Water $25.98",
+                    "Hershey's milk chocolate bars $8.54",
+                    "Great Value Broccoli Florets $1.00",
+                    "Keystone Ground Bee $6.28",
+                    "Gildan LT $8.61",
+                    "Men's Dual Defense Crew Socks 12 Pairs $13.00",
+                    "Wrangler Men's Stretch Cargo Pant $19.97",
+                    "LEGO DUPLO Town Farm Animals $10.10",
+                    "Cinema $8.73",
+                    "Skate rental $30.00",
+                    "Sensodyne Pronamel Toothpaste $19.74",
+                    "Chick-fil-A $10 Gift Card $10.00",
+                    "Debt $3.50"
+            };
+
+            for (String expectedPurchase : expectedPurchases) {
+                if (!allPurchases.contains(expectedPurchase)) {
+                    return new CheckResult(false,
+                            "Your all purchases list doesn't have purchase:\n" +
+                                    expectedPurchase + "\n" +
+                                    "But should have!");
+                }
+            }
+
+            String[] temp = allPurchases.split("\n");
+            String totalSum = temp[temp.length - 1];
+
+            Pattern doublePattern = Pattern.compile("\\d+[,.]\\d+");
+            Matcher matcher = doublePattern.matcher(totalSum);
+
+            if (!matcher.find()) {
+                return new CheckResult(false,
+                        "Total sum of all purchases is wrong. Expected:\n" +
+                                "Total sum: $214.36\n" +
+                                "Your output:\n" +
+                                totalSum);
+            }
+
+            double allTotalSum = Double.parseDouble(matcher.group());
+
+            if (Math.abs(allTotalSum - 214.36) > 0.0001) {
+                return new CheckResult(false,
+                        "Your all total sum is wrong!");
+            }
+
+            //Food list
+
+            String foodList = blocks[8];
+
+            expectedPurchases = new String[]{
+                    "Almond 250g $35.43",
+                    "Milk $3.50",
+                    "Red Fuji Apple $5.99",
+                    "Eggs $3.99",
+                    "FIJI Natural Artesian Water $25.98",
+                    "Hershey's milk chocolate bars $8.54",
+                    "Great Value Broccoli Florets $1.00",
+                    "Keystone Ground Bee $6.28"
+            };
+
+            for (String expectedPurchase : expectedPurchases) {
+                if (!foodList.contains(expectedPurchase)) {
+                    return new CheckResult(false,
+                            "Your food list doesn't have purchase:\n" +
+                                    expectedPurchase + "\n" +
+                                    "But should have!");
+                }
+            }
+
+            temp = foodList.split("\n");
+            totalSum = temp[temp.length - 1];
+
+            matcher = doublePattern.matcher(totalSum);
+
+            if (!matcher.find()) {
+                return new CheckResult(false,
+                        "Total sum of food list is wrong. Expected:\n" +
+                                "Total sum: $90.71\n" +
+                                "Your output:\n" + totalSum);
+            }
+
+            double foodTotalSum = Double.parseDouble(matcher.group());
+
+            if (Math.abs(foodTotalSum - 90.71) > 0.0001) {
+                return new CheckResult(false,
+                        "Your food total sum is wrong!");
+            }
+
+            return new CheckResult(true);
+        }
+
+
+        //Sorting check
+        private static CheckResult test7(String reply, String attach) {
+
+            String[] blocks = reply.split("\n(\n+)?\n");
+
+            if (blocks.length != 22) {
+                return new CheckResult(false,
+                        "Your program shows wrong blocks of output. Expected: 22\n" +
+                                "You have: " + blocks.length + "\n" +
+                                "Make sure that you print an empty line after each chosen action");
+            }
+
+            String sortEmptyAllPurchases = blocks[2];
+
+            if (!sortEmptyAllPurchases.contains("list is empty")) {
+                return new CheckResult(false,
+                        "\"Sort all purchases\" item shouldn't work if there are no purchases in the list.\n" +
+                                "You should print 'List is empty!'");
+            }
+
+            String sortByEmptyType = blocks[4];
+
+            if (sortByEmptyType.contains("list is empty")) {
+                return new CheckResult(false,
+                        "\"Sort by type\" item should work even if there are no purchases in the list\n" +
+                                "You should print each category with total sum $0\n" +
+                                "Your output shouldn't contain 'List is empty!'");
+            }
+
+            String sortEmptyCertainType = blocks[7];
+
+            if (!sortEmptyCertainType.contains("list is empty")) {
+                return new CheckResult(false,
+                        "\"Sort certain type\" item shouldn't work if there are no purchases in the certain list\n" +
+                                "You should print 'List is empty'");
+            }
+
+            String allSorted = blocks[13];
+            String rightSorted = "Almond 250g $35.43\n" +
+                    "Skate rental $30.00\n" +
+                    "FIJI Natural Artesian Water $25.98\n" +
+                    "Wrangler Men's Stretch Cargo Pant $19.97\n" +
+                    "Sensodyne Pronamel Toothpaste $19.74\n" +
+                    "Men's Dual Defense Crew Socks 12 Pairs $13.00\n" +
+                    "LEGO DUPLO Town Farm Animals $10.10\n" +
+                    "Chick-fil-A $10 Gift Card $10.00\n" +
+                    "Cinema $8.73\n" +
+                    "Gildan LT $8.61\n" +
+                    "Hershey's milk chocolate bars $8.54\n" +
+                    "Keystone Ground Bee $6.28\n" +
+                    "Red Fuji Apple $5.99\n" +
+                    "Eggs $3.99\n" +
+                    "Milk $3.50\n" +
+                    "Debt $3.50\n" +
+                    "Great Value Broccoli Florets $1.00";
+
+            if (!allSorted.contains(rightSorted)) {
+                return new CheckResult(false,
+                        "Your program sort all purchases wrong!\n" +
+                                "Expected:\n" +
+                                rightSorted + "\n" +
+                                "Your output:\n" +
+                                allSorted);
+            }
+
+
+            String sortedByType = blocks[15];
+            String rightSortedByType = "Food - $90.71\n" +
+                    "Entertainment - $48.83\n" +
+                    "Clothes - $41.58\n" +
+                    "Other - $33.24";
+
+            if (!sortedByType.contains(rightSortedByType)) {
+                return new CheckResult(false,
+                        "Your program sort by type wrong!\n" +
+                                "Expected:\n" +
+                                rightSortedByType + "\n" +
+                                "Your output:\n" +
+                                sortedByType);
+            }
+
+            String sortedCertainType = blocks[18];
+            String rightSortedCertainType = "Almond 250g $35.43\n" +
+                    "FIJI Natural Artesian Water $25.98\n" +
+                    "Hershey's milk chocolate bars $8.54\n" +
+                    "Keystone Ground Bee $6.28\n" +
+                    "Red Fuji Apple $5.99\n" +
+                    "Eggs $3.99\n" +
+                    "Milk $3.50\n" +
+                    "Great Value Broccoli Florets $1.00";
+
+            if (!sortedCertainType.contains(rightSortedCertainType)) {
+                return new CheckResult(false,
+                        "Your program sort certain type wrong!\n" +
+                                "Expected:\n" +
+                                rightSortedCertainType + "\n" +
+                                "Your output:\n" +
+                                sortedCertainType);
+            }
+
+            return new CheckResult(true);
+        }
+    }
+  learner_created: false
+- name: src/budget/Zakup.java
+  visible: true
+  text: |
+    package budget;
+
+    import java.io.Serializable;
+
+    public class Zakup implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        String nazwa;
+        float cena;
+        String kategoria;
+
+
+
+    }
+  learner_created: true
+- name: src/budget/Statusy.java
+  visible: true
+  text: |
+    package budget;
+
+    import java.io.Serializable;
+
+    public class Statusy implements Serializable {
+
+        private static final long serialVersionUID = 2L;
+
+        float income;
+        float balance;
+    }
+  learner_created: true
+- name: purchases.txt
+  visible: true
+  text: "��\0\x05sr\0\x13java.util.ArrayListx��\x1d��a�\x03\0\x01I\0\x04sizexp\0\0\
+    \0\x11w\x04\0\0\0\x11sr\0\fbudget.Zakup\0\0\0\0\0\0\0\x01\x02\0\x03F\0\x04cenaL\0\
+    \tkategoriat\0\x12Ljava/lang/String;L\0\x05nazwaq\0~\0\x03xpB\n�Rt\0\x04Foodt\0\
+    \vAlmond 250gsq\0~\0\x02@`\0\0q\0~\0\x05t\0\x04Milksq\0~\0\x02@��\x14q\0~\0\x05\
+    t\0\x0eRed Fuji Applesq\0~\0\x02@\x7f\\)q\0~\0\x05t\0\x04Eggssq\0~\0\x02A��\n\
+    q\0~\0\x05t\0\eFIJI Natural Artesian Watersq\0~\0\x02A\b��q\0~\0\x05t\0\x1dHershey's\
+    \ milk chocolate barssq\0~\0\x02?�\0\0q\0~\0\x05t\0\x1cGreat Value Broccoli Floretssq\0\
+    ~\0\x02@���q\0~\0\x05t\0\x13Keystone Ground Beesq\0~\0\x02A\t\x8ft\0\aClothest\0\
+    \tGildan LTsq\0~\0\x02AP\0\0q\0~\0\x16t\0&Men's Dual Defense Crew Socks 12 Pairssq\0\
+    ~\0\x02A�\x8fq\0~\0\x16t\0!Wrangler Men's Stretch Cargo Pantsq\0~\0\x02A!��t\0\
+    \nEntertainmentt\0\x1cLEGO DUPLO Town Farm Animalssq\0~\0\x02A\v�\x14q\0~\0\x1d\
+    t\0\x06Cinemasq\0~\0\x02A�\0\0q\0~\0\x1dt\0\fSkate rentalsq\0~\0\x02A��t\0\x05\
+    Othert\0\x1dSensodyne Pronamel Toothpastesq\0~\0\x02A \0\0q\0~\0$t\0\x19Chick-fil-A\
+    \ $10 Gift Cardsq\0~\0\x02@`\0\0q\0~\0$t\0\x04Debtx"
+  learner_created: true
+- name: statusy.txt
+  visible: true
+  text: "��\0\x05sr\0\x0ebudget.Statusy\0\0\0\0\0\0\0\x02\x02\0\x02F\0\abalanceF\0\
+    \x06incomexpDDh�Dz\0\0"
+  learner_created: true
+- name: src/budget/Kontroler.java
+  visible: true
+  text: |
+    package budget;
+
+    import java.io.*;
+    import java.text.DecimalFormat;
+    import java.util.ArrayList;
+    import java.util.List;
+    import java.util.Scanner;
+    import java.util.stream.Collectors;
+
+    public class Kontroler {
+
+        Scanner scanner;
+        String line;
+
+        float income;
+        float balance;
+        List<Zakup> listaZakupow = new ArrayList<>();
+        DecimalFormat df ;
+
+        private static final String filepath="purchases.txt";
+        private static final String filepath2="statusy.txt";
+
+        //---------------------------------------------------
+        public Kontroler() {
+            income = 0;
+            balance = 0;
+            listaZakupow = new ArrayList<>();
+            scanner = new Scanner(System.in);
+            line ="";
+            df = new DecimalFormat();
+            df.setMinimumFractionDigits(2);
+        }
+        //---------------------------------------------------
+        public void mainMenu(){
+
+
+            String line ="";
+
+            while (!line.equals("0")){
+                System.out.println("Choose your action:");
+                System.out.println("1) Add income");
+                System.out.println("2) Add purchase");
+                System.out.println("3) Show list of purchases");
+                System.out.println("4) Balance");
+                System.out.println("5) Save");
+                System.out.println("6) Load");
+                System.out.println("0) Exit");
+                line = scanner.nextLine();
+                System.out.println();
+                switch (line){
+                    case "1":
+                        addIncome();
+
+                    break;
+                    case "2":
+                        chooseCategoryPurchase();
+                        //addPurchase();
+
+                        break;
+                    case "3":
+                        if(!listaZakupow.isEmpty())
+                            showCategoryPurchases();
+                        else{
+                            System.out.println("The purchase list is empty");
+                            System.out.println();
+                        }
+
+                          //  showPuchases();
+
+                        break;
+                    case "4":
+                    showBalance();
+                    break;
+                    case "5":
+                        saveList();
+                        saveStatusy();
+                        break;
+                    case "6":
+                        loadList();
+                        loadStatusy();
+                        break;
+                }
+
+
+            }
+
+
+
+        }
+        //---------------------------------------------------
+        private void loadStatusy() {
+            Statusy temp = new Statusy();
+            try {
+                FileInputStream fis = new FileInputStream(filepath2);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+                temp = (Statusy) ois.readObject();
+                // Collections.reverse(lista);
+                ois.close();
+                balance = temp.balance;
+                income = temp.income;
+
+            }
+            catch (IOException e) {
+                // System.out.println("***catch ERROR***");
+                // e.printStackTrace();
+
+            }
+            catch (ClassNotFoundException e) {
+                System.out.println("***catch ERROR***");
+                //  e.printStackTrace();
+            }
+            // End of loadDatabase
+        }
+        //---------------------------------------------------
+        private void loadList() {
+            List<Zakup> temp = new ArrayList<>();
+            try {
+                FileInputStream fis = new FileInputStream(filepath);
+                ObjectInputStream ois = new ObjectInputStream(fis);
+                temp = (List<Zakup>) ois.readObject();
+                // Collections.reverse(lista);
+                ois.close();
+                listaZakupow = temp;
+                System.out.println("Purchases were loaded!");
+                System.out.println();
+
+            }
+            catch (IOException e) {
+                // System.out.println("***catch ERROR***");
+                // e.printStackTrace();
+
+            }
+            catch (ClassNotFoundException e) {
+                System.out.println("***catch ERROR***");
+                //  e.printStackTrace();
+            }
+         // End of loadDatabase
+    }
+        //---------------------------------------------------
+        private void saveStatusy() {
+            try {
+                Statusy temp = new Statusy();
+                temp.balance = balance;
+                temp.income = income;
+                FileOutputStream fos = new FileOutputStream(filepath2);
+                ObjectOutputStream oos = new ObjectOutputStream(fos);
+                oos.writeObject(temp);
+                oos.close();
+                //boolean databaseIsSaved = true;
+
+
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+        //---------------------------------------------------
+        private void saveList() {
+            try {
+                FileOutputStream fos = new FileOutputStream(filepath);
+                ObjectOutputStream oos = new ObjectOutputStream(fos);
+                oos.writeObject(listaZakupow);
+                oos.close();
+                //boolean databaseIsSaved = true;
+                System.out.println("Purchases were saved!");
+                System.out.println();
+
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+        //---------------------------------------------------
+        private void showBalance() {
+
+
+            System.out.println("Balance: $"+df.format(balance));
+
+           // System.out.println("Balance: $"+balance);
+            System.out.println();
+
+        }
+        //---------------------------------------------------
+        private void showCategoryPurchases(){
+
+            boolean czyExit = false;
+            while (!czyExit){
+                Zakup zakup = new Zakup();
+                System.out.println("Choose the type of purchases");
+                System.out.println("1) Food");
+                System.out.println("2) Clothes");
+                System.out.println("3) Entertainment");
+                System.out.println("4) Other");
+                System.out.println("5) All");
+                System.out.println("6) Back");
+                String kategoria = scanner.nextLine();
+                switch (kategoria){
+                    case "1":
+                        showPuchasesKategory("Food");
+
+                        break;
+                    case "2":
+
+                        showPuchasesKategory("Clothes");
+
+                        break;
+                    case "3":
+
+                        showPuchasesKategory("Entertainment");
+
+                        break;
+                    case "4":
+
+                        showPuchasesKategory("Other");
+
+                        break;
+                    case "5":
+
+                        showPuchases();
+
+                        break;
+
+
+                    case "6":
+                        czyExit = true;
+                        System.out.println();
+                        break;
+                }
+
+
+
+
+            }
+
+
+
+        }
+        //---------------------------------------------------
+        private void chooseCategoryPurchase(){
+            boolean czyExit = false;
+            while (!czyExit){
+                Zakup zakup = new Zakup();
+                System.out.println("Choose the type of purchase");
+                System.out.println("1) Food");
+                System.out.println("2) Clothes");
+                System.out.println("3) Entertainment");
+                System.out.println("4) Other");
+                System.out.println("5) Back");
+                String kategoria = scanner.nextLine();
+                switch (kategoria){
+                    case "1":
+                        zakup.kategoria = "Food";
+                        addPurchase(zakup);
+                        break;
+                    case "2":
+                        zakup.kategoria = "Clothes";
+                        addPurchase(zakup);
+                        break;
+                    case "3":
+                        zakup.kategoria = "Entertainment";
+                        addPurchase(zakup);
+                        break;
+                    case "4":
+                        zakup.kategoria = "Other";
+                        addPurchase(zakup);
+                        break;
+                    case "5":
+                        czyExit = true;
+                        System.out.println();
+                        break;
+                }
+
+
+
+
+            }
+        }
+
+        //---------------------------------------------------
+        private void addPurchase(Zakup zakup) {
+            //Zakup zakup = new Zakup();
+            System.out.println();
+            System.out.println("Enter purchase name:");
+            zakup.nazwa = scanner.nextLine();
+            System.out.println("Enter its price:");
+            zakup.cena = Float.parseFloat(scanner.nextLine());
+            System.out.println("Purchase was added!");
+            System.out.println();
+            balance = balance- zakup.cena;
+            if(balance <0) balance = 0;
+            listaZakupow.add(zakup);
+
+        }
+        //---------------------------------------------------
+        private void showPuchasesKategory(String kategoria) {
+            System.out.println();
+            List<Zakup> collect = listaZakupow.stream().filter(x -> x.kategoria.equals(kategoria)).collect(Collectors.toList());
+            if(collect.isEmpty()){
+                System.out.println("The purchase list is empty");
+                System.out.println();
+            }
+            else {
+                float sum = 0;
+                for(Zakup s:collect){
+                    System.out.println(s.nazwa+" $"+df.format(s.cena));
+                    //String x = s.nazwa.substring(s.nazwa.lastIndexOf("$") + 1);
+                    //System.out.println(x);
+                    // sum= sum+ Float.parseFloat(x);
+                    sum = sum+s.cena;
+                }
+                System.out.println("Total sum: $"+df.format(sum));
+                System.out.println();
+            }
+
+        }
+        //---------------------------------------------------
+
+
+        //---------------------------------------------------
+        private void showPuchases() {
+            System.out.println();
+            if(listaZakupow.isEmpty()){
+                System.out.println("The purchase list is empty");
+                System.out.println();
+            }
+            else {
+                float sum = 0;
+                for(Zakup s:listaZakupow){
+                    System.out.println(s.nazwa+" $"+df.format(s.cena));
+                    //String x = s.nazwa.substring(s.nazwa.lastIndexOf("$") + 1);
+                    //System.out.println(x);
+                   // sum= sum+ Float.parseFloat(x);
+                    sum = sum+s.cena;
+                }
+                System.out.println("Total sum: $"+df.format(sum));
+                System.out.println();
+            }
+
+
+        }
+        //---------------------------------------------------
+        private void addIncome() {
+            System.out.println("Enter income:");
+            income = Float.parseFloat(scanner.nextLine());
+            System.out.println("Income was added!");
+            System.out.println();
+            balance = balance+income;
+        }
+        //---------------------------------------------------
+
+    }
+  learner_created: true
+feedback_link: https://hyperskill.org/learn/step/7028#comment
+status: Solved
+feedback:
+  message: Well done! You've finished the project. Select a new project on <a href="https://hyperskill.org/projects">JetBrains
+    Academy</a> to continue learning.
+  time: Sun, 19 Dec 2021 17:47:40 UTC
+record: -1
